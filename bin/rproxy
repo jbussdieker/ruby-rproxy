@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+require 'rproxy'
+
+RProxy::Server.run("127.0.0.1", 8080)
