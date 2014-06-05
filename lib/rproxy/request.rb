@@ -1,9 +1,16 @@
 module RProxy
   class Request
-    attr_reader :method, :url, :http_version, :headers
+    include Header
+
+    attr_reader :method, :url, :http_version
+    attr_accessor :body
 
     def request_line
       "#{method} #{url} HTTP/#{http_version}\r\n"
+    end
+
+    def to_s
+      request_line + headers_to_s + "\r\n" + (body || "")
     end
 
     class << self
@@ -24,23 +31,6 @@ module RProxy
           raise Net::HTTPBadResponse, "wrong response line: #{str.dump}"
         m.captures[0..-2]
       end
-
-      def each_header(sock)
-        key = value = nil
-        while true
-          line = sock.readuntil("\n", true).sub(/\s+\z/, '')
-          break if line.empty?
-          if line[0] == ?\s or line[0] == ?\t and value
-            value << ' ' unless value.empty?
-            value << line.strip
-          else
-            yield key, value if key
-            key, value = line.strip.split(/\s*:\s*/, 2)
-            raise Net::HTTPBadResponse, 'wrong header line format' if value.nil?
-          end
-        end
-        yield key, value if key
-      end
     end
 
     def initialize(method, url, httpv)
@@ -60,10 +50,6 @@ module RProxy
     def close?
       http_version == "1.0" || 
       (http_version == "1.1" && self["Connection"] == "close")
-    end
-
-    def add_field(k, v)
-      @headers << [k, v]
     end
   end
 end

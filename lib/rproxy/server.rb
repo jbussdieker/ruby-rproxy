@@ -15,6 +15,7 @@ module RProxy
     end
 
     def run
+      puts "Starting #{self.class} on #{host}:#{port}"
       loop do
         accept
       end
@@ -22,19 +23,23 @@ module RProxy
 
     #private
 
+    def run_connection(connection)
+      #puts @pool.length
+
+      type, addrport, addr1, addr2 = connection.peeraddr
+      puts "  #{addr1}:#{addrport} Connection received"
+
+      connection = Connection.new(connection)
+      @pool << connection
+      connection.run
+
+      puts "  #{addr1}:#{addrport} Connection closed"
+      @pool.delete(connection)
+    end
+
     def accept
       Thread.start(server.accept) do |connection|
-        puts @pool.length
-
-        type, addrport, addr1, addr2 = connection.peeraddr
-        puts "  #{addr1}:#{addrport} Connection received"
-
-        connection = Connection.new(connection)
-        @pool << connection
-        connection.run
-
-        puts "  #{addr1}:#{addrport} Connection closed"
-        @pool.delete(connection)
+        run_connection(connection)
       end
     end
 
