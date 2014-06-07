@@ -27,13 +27,13 @@ module RProxy
       #puts @pool.length
 
       type, addrport, addr1, addr2 = connection.peeraddr
-      puts "  #{addr1}:#{addrport} Connection received"
+      puts "#{Time.now} #{addr1}:#{addrport} Connection received"
 
-      connection = Connection.new(connection)
+      connection = ProxyConnection.new(connection)
       @pool << connection
       connection.run
 
-      puts "  #{addr1}:#{addrport} Connection closed"
+      puts "#{Time.now} #{addr1}:#{addrport} Connection closed"
       @pool.delete(connection)
     end
 

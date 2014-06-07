@@ -28,7 +28,7 @@ module RProxy
       def read_request_line(sock)
         str = sock.readline
         m = /\A(\w+)\s+(.*)\s+HTTP(?:\/(\d+\.\d+))?(\r\n)?\z/in.match(str) or
-          raise Net::HTTPBadResponse, "wrong response line: #{str.dump}"
+          raise Exception, "wrong request line: #{str.dump}"
         m.captures[0..-2]
       end
     end
