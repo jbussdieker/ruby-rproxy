@@ -2,8 +2,7 @@ module RProxy
   class Response
     include Header
 
-    attr_reader :http_version, :code, :msg
-    attr_accessor :body
+    attr_accessor :http_version, :code, :msg, :body
 
     def response_line
       "HTTP/#{http_version} #{code} #{msg}\r\n"

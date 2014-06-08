@@ -6,6 +6,14 @@ module RProxy
       @headers << [k, v]
     end
 
+    def remove_field(k)
+      @headers.each do |header|
+        if header[0].downcase == k.downcase
+          @headers.delete header
+        end
+      end
+    end
+
     def each_header(&block)
       @headers.each do |header|
         yield(header)
@@ -15,6 +23,14 @@ module RProxy
     def headers_to_s
       str = @headers.collect {|h| "#{h[0]}: #{h[1]}"}.join("\r\n")
       str += "\r\n" unless @headers.length == 0
+      str
+    end
+
+    def [](key)
+      @headers.each do |k, v|
+        return v if k.downcase == key.downcase
+      end
+      nil
     end
 
     def self.included(base)

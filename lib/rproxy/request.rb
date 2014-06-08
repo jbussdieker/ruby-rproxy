@@ -2,8 +2,7 @@ module RProxy
   class Request
     include Header
 
-    attr_reader :method, :url, :http_version
-    attr_accessor :body
+    attr_accessor :method, :url, :http_version, :body
 
     def request_line
       "#{method} #{url} HTTP/#{http_version}\r\n"
@@ -38,13 +37,6 @@ module RProxy
       @url          = url
       @http_version = httpv
       @headers      = []
-    end
-
-    def [](key)
-      @headers.each do |k, v|
-        return v if k == key
-      end
-      nil
     end
 
     def close?

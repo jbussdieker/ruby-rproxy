@@ -1,10 +1,15 @@
+require 'logger'
+
 module RProxy
   class ProxyConnection
-    DEBUG = false
     attr_accessor :connection
 
     def initialize(connection)
       @connection = connection
+    end
+
+    def logger
+      RProxy.logger
     end
 
     def handle_request(req)
@@ -13,72 +18,49 @@ module RProxy
       resp
     end
 
-    def send_response(req, resp, body)
-      type, addrport, addr1, addr2 = connection.peeraddr
-      puts "#{Time.now} #{addr1}:#{addrport}  <= HTTP/#{resp.http_version} #{resp.code} #{resp.msg}"
+    def transform_request(req)
+      uri = URI.parse(req.url)
 
-      nresp = Response.new("1.1", resp.code, resp.msg)
-      nresp.add_field("Content-Length", body ? body.bytesize : 0)
-      nresp.add_field("Connection", req.close? ? "close" : "keep-alive")
+      req.remove_field("Proxy-Connection")
+      req.remove_field("Connection")
+      req.url = uri.request_uri
 
-      resp.each_header do |k,v|
-        unless k == "content-length" || k == "connection"
-          nresp.add_field(k.capitalize, v)
-        end
-      end
-
-      nresp.body = body
-
-      if DEBUG
-        puts "Outgoing Response:"
-        puts "---------------------------------------"
-        puts nresp
-        puts
-      end
-
-      io.write nresp.to_s
+      [req, uri]
     end
 
     def issue_upstream(req)
       type, addrport, addr1, addr2 = connection.peeraddr
-      puts "#{Time.now} #{addr1}:#{addrport}  => #{req.method} #{req.url} HTTP/#{req.http_version}"
+      logger.info "#{addr1}:#{addrport}  => #{req.method} #{req.url} HTTP/#{req.http_version}"
 
-      uri = URI.parse(req.url)
-      nreq = Request.new(req.method, uri.request_uri, "1.1")
-      req.headers.each do |key, value|
-        unless key == "Proxy-Connection" || key == "Connection"
-          nreq.add_field(key, value)
-        end
-      end
-
-      if DEBUG
-        puts "Outgoing Request:"
-        puts "---------------------------------------"
-        puts nreq.to_s
-        puts
-      end
+      req, uri = transform_request(req)
 
       socket = TCPSocket.open(uri.host, uri.port)
       upio = Net::BufferedIO.new(socket)
-      upio.write(nreq.to_s)
+      upio.write(req.to_s)
       resp = Response.read_new(upio)
-      clen = 0
-      resp.each_header do |key, value|
-        if key =~ /content-length/i
-          clen = value.to_i
-        end
-      end
-
+      clen = resp["Content-Length"].to_i
       body = upio.read(clen)
 
-      if DEBUG
-        puts "Incoming Response:"
-        puts "---------------------------------------"
-        puts resp.to_s
-        puts
-      end
+      [resp, body]
+    end
+
+    def transform_response(req, resp, body)
+      resp.remove_field("Content-Length")
+      resp.remove_field("Connection")
+      resp.add_field("Content-Length", body ? body.bytesize : 0)
+      resp.add_field("Connection", req.close? ? "close" : "keep-alive")
+      resp.body = body
 
       [resp, body]
+    end
+
+    def send_response(req, resp, body)
+      type, addrport, addr1, addr2 = connection.peeraddr
+      logger.info "#{addr1}:#{addrport}  <= HTTP/#{resp.http_version} #{resp.code} #{resp.msg}"
+
+      resp, body = transform_response(req, resp, body)
+
+      io.write resp.to_s
     end
 
     def io
@@ -101,13 +83,6 @@ module RProxy
                 puts "  | #{line}"
               end
             end
-          end
-
-          if DEBUG
-            puts "Incoming Request:"
-            puts "---------------------------------------"
-            puts req
-            puts
           end
 
           handle_request(req)

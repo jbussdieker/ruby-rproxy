@@ -14,8 +14,12 @@ module RProxy
       @pool = []
     end
 
+    def logger
+      RProxy.logger
+    end
+
     def run
-      puts "Starting #{self.class} on #{host}:#{port}"
+      logger.info "Starting #{self.class} on #{host}:#{port}"
       loop do
         accept
       end
@@ -27,13 +31,13 @@ module RProxy
       #puts @pool.length
 
       type, addrport, addr1, addr2 = connection.peeraddr
-      puts "#{Time.now} #{addr1}:#{addrport} Connection received"
+      logger.info "#{addr1}:#{addrport} Connection received"
 
       connection = ProxyConnection.new(connection)
       @pool << connection
       connection.run
 
-      puts "#{Time.now} #{addr1}:#{addrport} Connection closed"
+      logger.info "#{addr1}:#{addrport} Connection closed"
       @pool.delete(connection)
     end
 
