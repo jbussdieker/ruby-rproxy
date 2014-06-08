@@ -1,7 +1,8 @@
 require 'spec_helper'
+require 'stringio'
 
 describe RProxy::Server do
-  let(:server) { RProxy::Server.new(host, 0) }
+  let(:server) { RProxy::Server.new(host, 0, logger: Logger.new(StringIO.new)) }
   let(:host) { "127.0.0.1" }
   let(:port) { server.server.addr[1] }
 

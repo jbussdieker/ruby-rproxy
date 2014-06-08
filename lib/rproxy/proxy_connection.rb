@@ -2,14 +2,15 @@ require 'logger'
 
 module RProxy
   class ProxyConnection
-    attr_accessor :connection
+    attr_accessor :connection, :options
 
-    def initialize(connection)
+    def initialize(connection, options = {})
       @connection = connection
+      @options = options
     end
 
     def logger
-      RProxy.logger
+      options[:logger]
     end
 
     def handle_request(req)

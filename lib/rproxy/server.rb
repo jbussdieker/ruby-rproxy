@@ -1,6 +1,8 @@
+require 'logger'
+
 module RProxy
   class Server
-    attr_accessor :host, :port
+    attr_accessor :host, :port, :options
 
     class << self
       def run(host, port)
@@ -8,14 +10,17 @@ module RProxy
       end
     end
 
-    def initialize(host, port)
+    def initialize(host, port, options = {})
       @host = host
       @port = port
+      @options = options
       @pool = []
     end
 
     def logger
-      RProxy.logger
+      options[:logger] ||= Logger.new(STDOUT).tap do |logger|
+        logger.level = Logger::INFO
+      end
     end
 
     def run
@@ -33,7 +38,7 @@ module RProxy
       type, addrport, addr1, addr2 = connection.peeraddr
       logger.info "#{addr1}:#{addrport} Connection received"
 
-      connection = ProxyConnection.new(connection)
+      connection = ProxyConnection.new(connection, options)
       @pool << connection
       connection.run
 
